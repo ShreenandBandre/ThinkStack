@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  # ---- PostgreSQL Database ----
+  db:
+    image: postgres:16-alpine
+    container_name: thinkstack-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    tmpfs:
+      - /tmp
+      - /run
+
+  # ---- Backend API ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: thinkstack-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    expose:
+      - "${PORT}"
+    depends_on:
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # ---- Frontend (Nginx + React) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: thinkstack-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"  # Maps host port 80 to container port 80 (frontend Nginx)
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  pgdata:
+    driver: local
