@@ -1,6 +1,4 @@
 version: "3.9"
-env_file:
-  - .env
 
 services:
   # ---- PostgreSQL Database ----
@@ -9,15 +7,15 @@ services:
     container_name: thinkstack-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: shree@2205
+      POSTGRES_DB: ThinkStack
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ThinkStack"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,10 +31,15 @@ services:
       dockerfile: Dockerfile
     container_name: thinkstack-backend
     restart: unless-stopped
-    env_file:
-      - ./backend/.env
+    environment:
+      PORT: "5000"
+      DB_USER: postgres
+      DB_PASSWORD: shree@2205
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ThinkStack
     expose:
-      - "${PORT}"
+      - "5000"
     depends_on:
       db:
         condition: service_healthy
@@ -54,7 +57,7 @@ services:
     container_name: thinkstack-frontend
     restart: unless-stopped
     ports:
-      - "80:80"  # Maps host port 80 to container port 80 (frontend Nginx)
+      - "80:8080"  # host port 80 → container port 8080 (React/Nginx)
     depends_on:
       - backend
     security_opt:
